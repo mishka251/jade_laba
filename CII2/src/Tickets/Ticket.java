@@ -99,6 +99,7 @@ public class Ticket extends Agent {
 
     /**
      * Проверяем готовность
+     *
      * @return готов/не готов
      */
     public boolean isReady() {
@@ -148,10 +149,14 @@ public class Ticket extends Agent {
         return Math.abs(getTotalComplex() - neededComp) > Math.abs(newComplexity - neededComp);
     }
 
-//    @Override
-//    public String toString() {
-//        return "[1 Bonpoc]{" + questions[0].toString() + "} [2 Bonpoc]{" + questions[1].toString() + "}";
-//    }
+    @Override
+    public String toString() {
+        String newLine = System.lineSeparator();
+        return getName() + " :" + " Сложность в билете = " + (questions[0].getComplex() + questions[1].getComplex())
+                + newLine + questions[0].toString()
+                + newLine + questions[1].toString();
+        //return "[1 Bonpoc]{" + questions[0].toString() + "} [2 Bonpoc]{" + questions[1].toString() + "}";
+    }
 
 
     private class RequestPerformer extends Behaviour {
@@ -412,15 +417,15 @@ public class Ticket extends Agent {
 
             if (done && Ticket.this.questions[0] != null && Ticket.this.questions[1] != null) // ! Добавить "разные темы"!
             {
-                System.out.println(newLine + myAgent.getName() + " :" + " Сложность в билете = " + ((int) questions[0].getComplex() + (int) questions[1].getComplex()) + newLine + Ticket.this.questions[0] + newLine + Ticket.this.questions[1]);//+getTotalComplex());
+                System.out.println(myAgent.toString());//+getTotalComplex());
                 //System.out.println(Ticket.this.questions[0] + newLine  + Ticket.this.questions[1]);
 
                 try (FileWriter writer = new FileWriter("output.txt", true)) {
                     // запись всей строки
-                    String text = myAgent.getName() + " :" + "Сложность=" + ((int) questions[0].getComplex() + (int) questions[1].getComplex()) + newLine + Ticket.this.questions[0] + newLine + Ticket.this.questions[1] + newLine;
+                    String text = myAgent.toString(); //myAgent.getName() + " :" + "Сложность=" + ((int) questions[0].getComplex() + (int) questions[1].getComplex()) + newLine + Ticket.this.questions[0] + newLine + Ticket.this.questions[1] + newLine;
                     writer.write(text);
                     // запись по символам
-                    writer.append('\n');
+                    writer.append(newLine);
 
                     writer.flush();
                 } catch (IOException ex) {

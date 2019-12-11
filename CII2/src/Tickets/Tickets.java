@@ -97,7 +97,7 @@ public class Tickets extends Agent {
                 totalComplexity += c;
                 receiveCount++;
                 tickets = searchByType("ticket");
-                if (receiveCount == tickets.size()) {
+                if (receiveCount ==ticketsCount) {
                     int middleCompl = totalComplexity / tickets.size();
                     System.out.println("=======================================================================" +
                             "==================================");
