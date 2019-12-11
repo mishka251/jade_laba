@@ -20,7 +20,7 @@ import java.util.Arrays;
 public class Tickets extends Agent {
     private int totalComplexity;
     int ticketsCount;
-    CyclicBehaviour managerBehaviour = null;
+    //CyclicBehaviour managerBehaviour = null;
 
     @Override
     protected void setup() {
@@ -47,12 +47,9 @@ public class Tickets extends Agent {
             } catch (StaleProxyException e) {
                 e.printStackTrace();
             }
+        }
 
-        }
-        if (managerBehaviour == null) {
-            managerBehaviour = new TicketsManager();
-            addBehaviour(managerBehaviour);
-        }
+        addBehaviour(new TicketsManager());
     }
 
 
@@ -60,6 +57,11 @@ public class Tickets extends Agent {
         private int receiveCount = 0;
         ArrayList<DFAgentDescription> tickets;
 
+        /**
+         * Писк агентов
+         * @param type нужный тип агента
+         * @return список описаний агентов
+         */
         ArrayList<DFAgentDescription> searchByType(String type) {
             DFAgentDescription template = new DFAgentDescription();
             ServiceDescription sd = new ServiceDescription();

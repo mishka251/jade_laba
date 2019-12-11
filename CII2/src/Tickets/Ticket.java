@@ -22,13 +22,22 @@ enum State {
     Init, AskingQuestions, GettingQuestions, SendComplexityToAll, GettingNeededComplexity, CheckSelfComplexity,
     //6                      7                   8                  9
     SendChangePropose, WaitChangePropose, WaitChangeResponse, ChangeQuestion
-};
+}
 
+/**
+ * Класс агента-билета
+ */
 public class Ticket extends Agent {
 
     final int delta = 1; // допустимая погрешность сложности билета
+    /**
+     * Вопросы
+     */
     protected Question[] questions;
 
+    /**
+     * Все билеты
+     */
     private AID myManager;
     private int neededComp; // требуемая сложность
 
@@ -171,43 +180,14 @@ public class Ticket extends Agent {
         }
 
 
-        void askQuestions() {
-            if (questionsCount == 2) {
-
-                System.out.println("\nstart\n" + myAgent.toString());
-                System.out.println("--------------------------------------------------------------------");
-                if (isReady()) {
-                    deregister();
-                    done = true;
-                }
-                step = State.SendComplexityToAll;
-                return;
-            }
-            if (questionsAgent.size() == receiver) {
-                deregister();
-                done = true;
-                return;
-            }
-            ACLMessage cfp = new ACLMessage(ACLMessage.CFP);
-            cfp.addReceiver(questionsAgent.get(receiver++).getName());
-            if (questionsCount == 1) {
-                cfp.setContent("get question;" + questions[0].getNameSubj());
-            } else {
-                cfp.setContent("get question;_");
-            }
-            cfp.setReplyWith("cfp" + System.currentTimeMillis());
-            cfp.setConversationId("tickets-creation");
-            myAgent.send(cfp);
-            mt = MessageTemplate.and(MessageTemplate.MatchConversationId("tickets-creation"),
-                    MessageTemplate.MatchInReplyTo(cfp.getReplyWith()));
-            step = State.GettingQuestions;
-        }
-
-
+        /**
+         * Основное поведение агента
+         * Зависит от его состояния - см case
+         */
         @Override
         public void action() {
             switch (step) {
-                case Init:
+                case Init://инициализация - ищем вопросы
                     questionsAgent = searchByType("question");
                     if (questionsAgent.size() != 0) {
                         step = State.AskingQuestions;
@@ -219,11 +199,39 @@ public class Ticket extends Agent {
                     }
                     break;
 
-                case AskingQuestions:
-                    askQuestions();
+                case AskingQuestions://опрашиваем вопросы на добавление в билет
+                    if (questionsCount == 2) {
+
+                        System.out.println("\nstart\n" + myAgent.toString());
+                        System.out.println("--------------------------------------------------------------------");
+                        if (isReady()) {
+                            deregister();
+                            done = true;
+                        }
+                        step = State.SendComplexityToAll;
+                        return;
+                    }
+                    if (questionsAgent.size() == receiver) {
+                        deregister();
+                        done = true;
+                        return;
+                    }
+                    ACLMessage cfp = new ACLMessage(ACLMessage.CFP);
+                    cfp.addReceiver(questionsAgent.get(receiver++).getName());
+                    if (questionsCount == 1) {
+                        cfp.setContent("get question;" + questions[0].getNameSubj());
+                    } else {
+                        cfp.setContent("get question;_");
+                    }
+                    cfp.setReplyWith("cfp" + System.currentTimeMillis());
+                    cfp.setConversationId("tickets-creation");
+                    myAgent.send(cfp);
+                    mt = MessageTemplate.and(MessageTemplate.MatchConversationId("tickets-creation"),
+                            MessageTemplate.MatchInReplyTo(cfp.getReplyWith()));
+                    step = State.GettingQuestions;
                     break;
 
-                case GettingQuestions:
+                case GettingQuestions://собираем ответы с вопросов
                     ACLMessage msg = myAgent.blockingReceive(mt);
 
                     if (msg.getPerformative() == ACLMessage.PROPOSE) {
@@ -236,15 +244,15 @@ public class Ticket extends Agent {
                     step = State.AskingQuestions;
                     break;
 
-                case SendComplexityToAll:
-                    ACLMessage cfp = new ACLMessage(ACLMessage.CFP);
+                case SendComplexityToAll://сообщаем всем свою сложность
+                    cfp = new ACLMessage(ACLMessage.CFP);
                     cfp.addReceiver(myManager);
                     cfp.setContent(String.valueOf(getTotalComplex()));
                     myAgent.send(cfp);
                     step = State.GettingNeededComplexity;
                     break;
 
-                case GettingNeededComplexity:
+                case GettingNeededComplexity://получаем среднюю сложность
                     mt = MessageTemplate.MatchPerformative(ACLMessage.CFP);
                     msg = myAgent.blockingReceive(mt);
                     neededComp = Integer.parseInt(msg.getContent());
@@ -253,7 +261,7 @@ public class Ticket extends Agent {
                     receiver = 0;
                     break;
 
-                case CheckSelfComplexity:
+                case CheckSelfComplexity://проверяем свою сложность в зависимости от средней
                     if (isReady()) {
                         deregister();
                         done = true;
@@ -268,7 +276,7 @@ public class Ticket extends Agent {
 
                     break;
 
-                case SendChangePropose:
+                case SendChangePropose://посылаем другим билетам предложение обмена
                     tickets = searchByType("ticket");
 
                     if (receiver >= tickets.size()) {
@@ -288,7 +296,7 @@ public class Ticket extends Agent {
                     step = State.WaitChangeResponse;
                     break;
 
-                case WaitChangePropose:
+                case WaitChangePropose://ждем от других предложение на обмен
                     tickets = searchByType("ticket");
                     if (tickets.size() == 0) {
                         deregister();
@@ -333,7 +341,7 @@ public class Ticket extends Agent {
                     }
                     break;
 
-                case WaitChangeResponse:
+                case WaitChangeResponse://ждем ответа на наше предложение обмена
                     mt = MessageTemplate.MatchPerformative(ACLMessage.PROPOSE);
                     msg = myAgent.blockingReceive(mt, 500);
                     if (msg == null) {
@@ -371,7 +379,7 @@ public class Ticket extends Agent {
                     step = State.CheckSelfComplexity;
                     break;
 
-                case ChangeQuestion:
+                case ChangeQuestion://получаем ответ на запрос об обмене
                     mt = MessageTemplate.MatchPerformative(ACLMessage.PROPOSE);
                     msg = myAgent.blockingReceive(mt);
 

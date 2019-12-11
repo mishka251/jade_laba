@@ -1,26 +1,19 @@
 package Questions;
 
-import java.io.*;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
 import jade.core.Agent;
-//import jade.core.behaviours.CyclicBehaviour;
-import jade.core.behaviours.OneShotBehaviour;
 import jade.domain.DFService;
 import jade.domain.FIPAAgentManagement.*;
 import jade.domain.FIPAException;
-//import jade.lang.acl.ACLMessage;
-//import jade.lang.acl.MessageTemplate;
-//import jade.wrapper.AgentController;
 import jade.wrapper.AgentController;
 import jade.wrapper.ContainerController;
 import jade.wrapper.StaleProxyException;
 
 
 public class Questions extends Agent {
-
 
     @Override
     public void setup() {

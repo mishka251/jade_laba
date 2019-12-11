@@ -65,7 +65,7 @@ public class Question extends Agent implements Serializable {
     /**
      * типа деструктора агента
      */
-    public void deregister() //
+    public void deregister()
     {
         try {
             DFService.deregister(this);
@@ -74,10 +74,6 @@ public class Question extends Agent implements Serializable {
         }
         removeBehaviour(behaviour);
     }
-
-//    public String getNameQuestion() {
-//        return nameQuestion;
-//    }
 
     public String getNameSubj() {
         return nameSubj;
