@@ -16,6 +16,14 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.io.*;
+import java.util.Collections;
+
+//          0      1                   2                  3                   4                      5
+enum State {
+    Init, AskingQuestions, GettingQuestions, SendComplexityToAll, GettingNeededComplexity, CheckSelfComplexity,
+    //6                      7                   8                  9
+    SendChangePropose, WaitChangePropose, WaitChangeResponse, ChangeQuestion
+};
 
 public class Ticket extends Agent {
 
@@ -24,7 +32,7 @@ public class Ticket extends Agent {
 
     private AID myManager;
     private int neededComp; // требуемая сложность
-    private int totalComplex = -1; // общая сложность билета
+    // private int totalComplex = -1; // общая сложность билета
 
     @Override
     public void setup() {
@@ -35,13 +43,13 @@ public class Ticket extends Agent {
         sd.setName("OneTicket");
         dfd.addServices(sd);
 
-        //--- Clear
-        try {
-            FileOutputStream writer = new FileOutputStream("output.txt");
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        }
-        //---
+//        //--- Clear
+//        try {
+//            FileOutputStream writer = new FileOutputStream("output.txt");
+//        } catch (FileNotFoundException e) {
+//            e.printStackTrace();
+//        }
+//        //---
 
         try {
             DFService.register(this, dfd);
@@ -55,6 +63,7 @@ public class Ticket extends Agent {
     }
 
     public void deregister() {
+        System.out.println("Agent done");
         try {
             DFService.deregister(this);
         } catch (FIPAException e) {
@@ -78,93 +87,81 @@ public class Ticket extends Agent {
     {
         //System.out.println("\ngetTotalComlex в Ticket:");
         //System.out.println(" totalComplex = "+ totalComplex+ " ; questions[0].getComplex()="+questions[0].getComplex()+ " ; questions[1].getComplex()="+questions[1].getComplex()+"\nreturn (totalComplex == -1) ? totalComplex = questions[0].getComplex() + questions[1].getComplex() : totalComplex;");
-        return (totalComplex == -1) ? totalComplex = questions[0].getComplex() + questions[1].getComplex() : totalComplex;
+        return
+                //(totalComplex == -1) ? totalComplex =
+                questions[0].getComplex() + questions[1].getComplex();// : totalComplex;
         //переменная x = (выражение) ? значение if true : значение if false
     }
 
     public int getSendIndex() {
-        //System.out.println("\n getSendIndex:");
-        if (getTotalComplex() > neededComp) {
-            //System.out.println("if getTotalComplex() = "+getTotalComplex()+" > "+neededComp+" = neededComp");
-            //System.out.println("return (questions[0].getComplex() >= questions[1].getComplex()) ? 0 : 1;");
-            //System.out.println("questions[0].getComplex()= "+questions[0].getComplex()+" >= "+ questions[1].getComplex()+" =questions[1].getComplex()");
-            return (questions[0].getComplex() >= questions[1].getComplex()) ? 0 : 1;
-        } else {
-            //System.out.println("else getTotalComplex()= "+getTotalComplex()+" > "+neededComp+" =neededComp");
-            //System.out.println("return (questions[0].getComplex() >= questions[1].getComplex()) ? 0 : 1;");
-            //System.out.println("questions[0].getComplex() = "+questions[0].getComplex()+" <= " + questions[1].getComplex()+" = questions[1].getComplex()");
-            return (questions[0].getComplex() <= questions[1].getComplex()) ? 0 : 1;
-        }
+        return (getTotalComplex() > neededComp) == (questions[0].getComplex() > questions[1].getComplex()) ? 0 : 1;
     }
 
+    /**
+     * Проверяем готовность
+     * @return готов/не готов
+     */
     public boolean isReady() {
         //System.out.println("isReady\n"+"getTotalComplex="+getTotalComplex()+" ; neededComp="+neededComp+" ; delta="+delta);
         return (Math.abs(getTotalComplex() - neededComp) <= delta);
     }
 
+    /**
+     * На какой вопрос будем менять полученный
+     *
+     * @param sw вопрос, который будем принимать
+     * @return -1 если не меняем, иначе индекс отдаваемого вопроса
+     */
     public int needSwap(Question sw) {
-        //System.out.println("\nneedSwap");
-        int d = Math.abs(getTotalComplex() - neededComp);
+        int delta_now = Math.abs(getTotalComplex() - neededComp);
+        int delta_change_0 = Math.abs(sw.getComplex() + questions[1].getComplex() - neededComp);
+        int delta_change_1 = Math.abs(sw.getComplex() + questions[0].getComplex() - neededComp);
 
-        //System.out.println("d="+ d+ " ; getTotalCompex = "+ getTotalComplex()+ " ; needComp = "+ neededComp);
-        //System.out.println("int d  = Math.abs(getTotalComplex() - neededComp);");
-        int d0 = Math.abs(sw.getComplex() + questions[0].getComplex() - neededComp);
-        //System.out.println("d0="+ d0+ " ; sw.getComplex() = "+ sw.getComplex()+" ; questions[0].getComplex() = "+questions[0].getComplex() +"; needComp="+ neededComp);
-        //System.out.println("int d0 = Math.abs(sw.getComplex() + questions[0].getComplex() - neededComp);");
-        int d1 = Math.abs(sw.getComplex() + questions[1].getComplex() - neededComp);
-        //System.out.println("d1="+ d0+ "; sw.getComplex()="+ sw.getComplex()+" ; questions[1].getComplex()="+questions[1].getComplex() +"; needComp="+ neededComp);
-        //System.out.println("int d1 = Math.abs(sw.getComplex() + questions[1].getComplex() - neededComp);");
-        if (d0 <= d1 && d0 <= d && !sw.getNameSubj().equals(getFirstQuestion())) {
-            //System.out.println("d0="+d0+" <= "+d1+"=d1  ; "+" d0"+d0+" <= "+d+"d  ;"+" getFirstQuestion()="+getFirstQuestion());
-            //System.out.println("if (d0 <= d1 && d0 <= d && !sw.getNameSubj().equals(getFirstQuestion()) ) тогда return 1");
-            return 1;
-        } else if (d1 < d0 && d1 <= d && !sw.getNameSubj().equals(getSecondQuestion())) {
-            //System.out.println("d1="+d1+" < "+d0+"=d0 "+ " ;  d1"+d1+" <= "+d+"d "+" ;  getSecondQuestion()=" +getSecondQuestion());
-            //System.out.println("else if (d1 < d0 && d1 <= d && !sw.getNameSubj().equals(getSecondQuestion()) ) тогда return 0");
-            return 0;
+        boolean can_swap_0 = (delta_change_0 < delta_now) && !sw.getNameSubj().equals(questions[1].getNameSubj());
+        boolean can_swap_1 = (delta_change_1 < delta_now) && !sw.getNameSubj().equals(questions[0].getNameSubj());
+
+        if (!can_swap_0 && !can_swap_1) {
+            return -1;
         }
-        return -1;
+        if (can_swap_0 && can_swap_1) {
+            return delta_change_0 < delta_change_1 ? 0 : 1;
+        }
+        return can_swap_0 ? 0 : 1;
     }
 
+    /**
+     * Нужно ли поменять вопросы
+     *
+     * @param without индекс вопрсоа, который отдаем
+     * @param sw      вопрос, который получаем
+     * @return Да/нет нужно ли менять
+     */
     public boolean needSwapWithout(int without, Question sw) //Сложность
     {
-        //System.out.println("\nneedSwapWithout");
-        int d = Math.abs(getTotalComplex() - neededComp);
-        //System.out.println(" d="+ d+ "; getTotalCompex="+ getTotalComplex()+ " ; needComp="+ neededComp);
-        //System.out.println("int d = Math.abs(getTotalComplex() - neededComp);");
-        int d2 = 0;
-        //System.out.println("1without="+without+"    ;   sw.getNameSubj()"+sw.getNameSubj());
-        if (without == 0 && !sw.getNameSubj().equals(getFirstQuestion())) {
-            d2 = Math.abs(sw.getComplex() + questions[1].getComplex() - neededComp);
-            //System.out.println("if (without == 0 && !sw.getNameSubj().equals(getFirstQuestion())  )");
-            //System.out.println("if d2="+ d+ " ; sw.getComplex()="+sw.getComplex()+"; questions[1].getComplex()="+questions[1].getComplex()+ " ; needComp="+ neededComp +"\nd2 = Math.abs(sw.getComplex() + questions[1].getComplex() - neededComp);");
-            //System.out.println("d2 = Math.abs(sw.getComplex() + questions[1].getComplex() - neededComp);");
-        } else if (!sw.getNameSubj().equals(getSecondQuestion())) {
-            //System.out.println("2without="+without+"    ;   sw.getNameSubj()"+sw.getNameSubj());
-            d2 = Math.abs(sw.getComplex() + questions[0].getComplex() - neededComp);
-            //System.out.println("else if(!sw.getNameSubj().equals(getSecondQuestion()) )");
-            //System.out.println("else d2="+ d2+ "; sw.getComplex() ="+sw.getComplex()+"; questions[0].getComplex()="+questions[0].getComplex()+ " ; needComp="+ neededComp +"\nd2 = Math.abs(sw.getComplex() + questions[0].getComplex() - neededComp);");
-            //System.out.println("d2 = Math.abs(sw.getComplex() + questions[0].getComplex() - neededComp);");
+        int left_ind = 1 - without;//1->0, 0->1
+
+        Question leftQuestion = questions[left_ind];
+        if (leftQuestion.getNameSubj().equals(sw.getNameSubj())) {
+            return false;
         }
-        //System.out.println("d2<d");
-        //System.out.println("d2 = "+d2+"<"+d+" = d");
-        return d2 < d;
+        int newComplexity = leftQuestion.getComplex() + sw.getComplex();
+        return Math.abs(getTotalComplex() - neededComp) > Math.abs(newComplexity - neededComp);
     }
 
-    @Override
-    public String toString() {
-        return "[1 Bonpoc]{" + questions[0].toString() + "} [2 Bonpoc]{" + questions[1].toString() + "}";
-    }
-
-//    public boolean equals(Ticket t) {
-//        System.out.println("equals t = " + t);
-//        return ((questions[0].equals(t.getFirstQuestion()) || questions[0].equals(t.getSecondQuestion())) &&
-//                (questions[1].equals(t.getFirstQuestion()) || questions[1].equals(t.getSecondQuestion())));
+//    @Override
+//    public String toString() {
+//        return "[1 Bonpoc]{" + questions[0].toString() + "} [2 Bonpoc]{" + questions[1].toString() + "}";
 //    }
+
 
     private class RequestPerformer extends Behaviour {
         ArrayList<DFAgentDescription> questionsAgent, tickets;
-        private int step = 0, receiver = 0, questionsCount = 0, request, propose, skipCount = 0;
+        private State step = State.Init;
+        private int receiver = 0,
+                questionsCount = 0,
+                question_for_change_ind,
+                propose,
+                skipCount = 0;
         private boolean done = false;
         private MessageTemplate mt;
         Question proposeQuestion;
@@ -190,13 +187,49 @@ public class Ticket extends Agent {
         }
 
 
+        void askQuestions() {
+            if (questionsCount == 2) {
+                //if (DEBUG)
+                //{
+                //    System.out.println("[DEBUG] start " +"\n" +getFirstQuestion() + "\n " + getSecondQuestion() + " Сложность в билете: " +getTotalComplex() +"\n" );
+                //}
+                System.out.println("\n" + myAgent.getLocalName() + " start " + " Сложность в билете: " + getTotalComplex() + "\n" + getFirstQuestion() + "\n " + getSecondQuestion());
+                System.out.println("--------------------------------------------------------------------");
+                if (isReady()) {
+                    deregister();
+                    done = true;
+                }
+                step = State.SendComplexityToAll;
+                return;
+            }
+            if (questionsAgent.size() == receiver) {
+                deregister();
+                done = true;
+                return;
+            }
+            ACLMessage cfp = new ACLMessage(ACLMessage.CFP);
+            cfp.addReceiver(questionsAgent.get(receiver++).getName());
+            if (questionsCount == 1) {
+                cfp.setContent("get question;" + getFirstQuestion().getNameSubj());
+            } else {
+                cfp.setContent("get question;_");
+            }
+            cfp.setReplyWith("cfp" + System.currentTimeMillis());
+            cfp.setConversationId("tickets-creation");
+            myAgent.send(cfp);
+            mt = MessageTemplate.and(MessageTemplate.MatchConversationId("tickets-creation"),
+                    MessageTemplate.MatchInReplyTo(cfp.getReplyWith()));
+            step = State.GettingQuestions;
+        }
+
+
         @Override
         public void action() {
             switch (step) {
-                case 0:
+                case Init:
                     questionsAgent = searchByType("question");
                     if (questionsAgent.size() != 0) {
-                        step = 1;
+                        step = State.AskingQuestions;
                     } else {
                         System.err.println("Не найдено вопросов");
                         done = true;
@@ -204,41 +237,10 @@ public class Ticket extends Agent {
                         return;
                     }
                     break;
-                case 1:
-                    if (questionsCount == 2) {
-                        //if (DEBUG)
-                        //{
-                        //    System.out.println("[DEBUG] start " +"\n" +getFirstQuestion() + "\n " + getSecondQuestion() + " Сложность в билете: " +getTotalComplex() +"\n" );
-                        //}
-                        System.out.println("\n" + myAgent.getLocalName() + " start " + " Сложность в билете: " + getTotalComplex() + "\n" + getFirstQuestion() + "\n " + getSecondQuestion());
-                        System.out.println("--------------------------------------------------------------------");
-                        if (isReady()) {
-                            deregister();
-                            done = true;
-                        }
-                        step = 3;
-                        return;
-                    }
-                    if (questionsAgent.size() == receiver) {
-                        deregister();
-                        done = true;
-                        return;
-                    }
-                    ACLMessage cfp = new ACLMessage(ACLMessage.CFP);
-                    cfp.addReceiver(questionsAgent.get(receiver++).getName());
-                    if (questionsCount == 1) {
-                        cfp.setContent("get question;" + getFirstQuestion().getNameSubj());
-                    } else {
-                        cfp.setContent("get question;_");
-                    }
-                    cfp.setReplyWith("cfp" + System.currentTimeMillis());
-                    cfp.setConversationId("tickets-creation");
-                    myAgent.send(cfp);
-                    mt = MessageTemplate.and(MessageTemplate.MatchConversationId("tickets-creation"),
-                            MessageTemplate.MatchInReplyTo(cfp.getReplyWith()));
-                    step = 2;
+                case AskingQuestions:
+                    askQuestions();
                     break;
-                case 2:
+                case GettingQuestions:
                     ACLMessage msg = myAgent.blockingReceive(mt);
 
                     if (msg.getPerformative() == ACLMessage.PROPOSE) {
@@ -248,28 +250,24 @@ public class Ticket extends Agent {
                             e.printStackTrace();
                         }
                     }
-                    step = 1;
+                    step = State.AskingQuestions;
                     break;
-                case 3:
-                    cfp = new ACLMessage(ACLMessage.CFP);
+                case SendComplexityToAll:
+                    ACLMessage cfp = new ACLMessage(ACLMessage.CFP);
                     cfp.addReceiver(myManager);
                     cfp.setContent(String.valueOf(getTotalComplex()));
                     myAgent.send(cfp);
-                    step = 4;
+                    step = State.GettingNeededComplexity;
                     break;
-                case 4:
+                case GettingNeededComplexity:
                     mt = MessageTemplate.MatchPerformative(ACLMessage.CFP);
                     msg = myAgent.blockingReceive(mt);
                     neededComp = Integer.parseInt(msg.getContent());
-                    //System.out.println("neededComp="+ neededComp+" = "+msg.getContent()+" msg.getContent()");
-                    //if (DEBUG)
-                    //{
-                    //    System.out.println("[DEBUG] step = 4 " + getLocalName() + " neededComp=" + neededComp + "\n");
-                    //}
-                    step = 5;
+
+                    step = State.CheckSelfComplexity;
                     receiver = 0;
                     break;
-                case 5:
+                case CheckSelfComplexity:
                     if (isReady()) {
                         deregister();
                         done = true;
@@ -277,21 +275,15 @@ public class Ticket extends Agent {
                     }
                     skipCount = 0;
                     if (getTotalComplex() > neededComp) {
-                        step = 6;
+                        step = State.SendChangePropose;
                     } else {
-                        step = 7;
+                        step = State.WaitChangePropose;
                     }
-                    //if (DEBUG)
-                    //{
-                    //    System.out.println("[DEBUG] step = 5 " + getLocalName() + " nextStep="+step);
-                    //}
+
                     break;
-                case 6:
+                case SendChangePropose:
                     tickets = searchByType("ticket");
-                    //if (DEBUG)
-                    //{
-                    //    System.out.println("[DEBUG] step = 6 " + getLocalName());
-                    //}
+
                     if (receiver >= tickets.size()) {
                         deregister();
                         done = true;
@@ -300,15 +292,15 @@ public class Ticket extends Agent {
                     ACLMessage req = new ACLMessage(ACLMessage.REQUEST);
                     req.addReceiver(tickets.get(receiver).getName());
                     try {
-                        request = getSendIndex();
-                        req.setContentObject(questions[request]);
+                        question_for_change_ind = getSendIndex();
+                        req.setContentObject(questions[question_for_change_ind]);
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
                     myAgent.send(req);
-                    step = 8;
+                    step = State.WaitChangeResponse;
                     break;
-                case 7:
+                case WaitChangePropose:
                     tickets = searchByType("ticket");
                     if (tickets.size() == 0) {
                         deregister();
@@ -329,6 +321,7 @@ public class Ticket extends Agent {
                             e.printStackTrace();
                         }
                         ACLMessage reply = new ACLMessage(ACLMessage.PROPOSE);
+                        assert q != null;
                         propose = needSwap(q);
                         proposeQuestion = q;
                         if (propose > -1) {
@@ -338,7 +331,7 @@ public class Ticket extends Agent {
                             } catch (IOException e) {
                                 e.printStackTrace();
                             }
-                            step = 9;
+                            step = State.ChangeQuestion;
                         } else {
                             reply.setContent("disconfirm");
                         }
@@ -350,25 +343,19 @@ public class Ticket extends Agent {
                         //}
                     } else {
                         skipCount++;
-                        if (skipCount == 10) {
+                        if (skipCount == 100) {
                             deregister();
                             done = true;
                             return;
                         }
                     }
                     break;
-                case 8:
-                    //if (DEBUG)
-                    //{
-                    //    System.out.println("[DEBUG] step = 8 " + getLocalName());
-                    //}
+                case WaitChangeResponse:
+
                     mt = MessageTemplate.MatchPerformative(ACLMessage.PROPOSE);
                     msg = myAgent.blockingReceive(mt, 500);
                     if (msg != null) {
-                        //if (DEBUG)
-                        //{
-                        //    System.out.println("[DEBUG] step = 8 " + getLocalName() + "  receive " + !msg.getContent().equalsIgnoreCase("disconfirm"));
-                        //}
+
                         if (!msg.getContent().equalsIgnoreCase("disconfirm")) {
                             Question q = null;
                             try {
@@ -378,9 +365,9 @@ public class Ticket extends Agent {
                                 e.printStackTrace();
                             }
                             ACLMessage reply = new ACLMessage(ACLMessage.PROPOSE);
-                            if (needSwapWithout(request, q)) {
-                                System.out.println("\r\n" + "Обмен " + myAgent.getLocalName() + " " + questions[request] + " - " + q + "  " + msg.getSender().getLocalName() + "\r\n");
-                                questions[request] = q;
+                            if (needSwapWithout(question_for_change_ind, q)) {
+                                System.out.println("\r\n" + "Обмен " + myAgent.getLocalName() + " " + questions[question_for_change_ind] + " - " + q + "  " + msg.getSender().getLocalName() + "\r\n");
+                                questions[question_for_change_ind] = q;
                                 reply.setContent("swap");
                             } else {
                                 reply.setContent("not swap");
@@ -388,15 +375,10 @@ public class Ticket extends Agent {
                             reply.addReceiver(msg.getSender());
                             myAgent.send(reply);
                         }
-                        if (isReady()) {
-                            deregister();
-                            done = true;
-                            return;
-                        }
                         receiver++;
-                        step = 5;
+                        step = State.CheckSelfComplexity;
                     } else {
-                        step = 6;
+                        step = State.SendChangePropose;
                         skipCount++;
                         if (skipCount == 10) {
                             skipCount = 0;
@@ -404,11 +386,8 @@ public class Ticket extends Agent {
                         }
                     }
                     break;
-                case 9:
-                    //if (DEBUG)
-                    //{
-                    //    System.out.println("[DEBUG] step = 9 " + getLocalName());
-                    //}
+                case ChangeQuestion:
+
                     mt = MessageTemplate.MatchPerformative(ACLMessage.PROPOSE);
                     msg = myAgent.blockingReceive(mt);
                     //if (DEBUG)
@@ -417,9 +396,9 @@ public class Ticket extends Agent {
                     //}
                     if (msg.getContent().equalsIgnoreCase("swap")) {
                         questions[propose] = proposeQuestion;
-                        step = 5;
+                        step = State.CheckSelfComplexity;
                     } else {
-                        step = 7;
+                        step = State.WaitChangePropose;
                     }
                     break;
             }

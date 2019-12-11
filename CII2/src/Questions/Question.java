@@ -87,7 +87,6 @@ public class Question extends Agent implements Serializable {
     @Override
     public String toString() {
         return " [ Тематика ]=" + nameSubj + " [ Bonpoc ]=" + nameQuestion + " [ Сложность ]=" + complex;
-        //return " [ Тематика ]=" + nameQuestion + " [ Вопрос ]=" + nameSubj + " [ Сложность ]=" + complex;
     }
 
     public boolean equals(Question q) // проверка равности вопросов

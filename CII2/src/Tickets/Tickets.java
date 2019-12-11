@@ -13,6 +13,8 @@ import jade.lang.acl.MessageTemplate;
 import jade.wrapper.ContainerController;
 import jade.wrapper.StaleProxyException;
 
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -23,6 +25,16 @@ public class Tickets extends Agent {
 
     @Override
     protected void setup() {
+
+        //--- Clear
+        try {
+            FileOutputStream writer = new FileOutputStream("output.txt");
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+//        //---
+
+
         TicketGui myGui = new TicketGui(this);
         myGui.showGui();
     }
@@ -80,6 +92,7 @@ public class Tickets extends Agent {
             MessageTemplate mt = MessageTemplate.MatchPerformative(ACLMessage.CFP);
             ACLMessage msg = myAgent.blockingReceive(mt, 500);
             if (msg != null) {
+                System.out.println("Tickets get some");
                 int c = Integer.parseInt(msg.getContent());
                 totalComplexity += c;
                 receiveCount++;
