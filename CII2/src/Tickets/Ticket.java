@@ -16,7 +16,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.io.*;
-import java.util.Collections;
 
 //          0      1                   2                  3                   4                      5
 enum State {
@@ -32,7 +31,6 @@ public class Ticket extends Agent {
 
     private AID myManager;
     private int neededComp; // требуемая сложность
-    // private int totalComplex = -1; // общая сложность билета
 
     @Override
     public void setup() {
@@ -42,14 +40,6 @@ public class Ticket extends Agent {
         sd.setType("ticket");
         sd.setName("OneTicket");
         dfd.addServices(sd);
-
-//        //--- Clear
-//        try {
-//            FileOutputStream writer = new FileOutputStream("output.txt");
-//        } catch (FileNotFoundException e) {
-//            e.printStackTrace();
-//        }
-//        //---
 
         try {
             DFService.register(this, dfd);
@@ -71,28 +61,20 @@ public class Ticket extends Agent {
         }
     }
 
-    public Question getFirstQuestion() {
-        return questions[0];
+    /**
+     * Сложность билета
+     *
+     * @return сложность билета
+     */
+    public int getTotalComplex() {
+        return questions[0].getComplex() + questions[1].getComplex();
     }
 
-    public Question getSecondQuestion() {
-        return questions[1];
-    }
-
-//   // public Question getQuestionNot(int n) {
-//        return (n == 0) ? questions[1] : questions[0];
-//    }
-
-    public int getTotalComplex() // СЛ
-    {
-        //System.out.println("\ngetTotalComlex в Ticket:");
-        //System.out.println(" totalComplex = "+ totalComplex+ " ; questions[0].getComplex()="+questions[0].getComplex()+ " ; questions[1].getComplex()="+questions[1].getComplex()+"\nreturn (totalComplex == -1) ? totalComplex = questions[0].getComplex() + questions[1].getComplex() : totalComplex;");
-        return
-                //(totalComplex == -1) ? totalComplex =
-                questions[0].getComplex() + questions[1].getComplex();// : totalComplex;
-        //переменная x = (выражение) ? значение if true : значение if false
-    }
-
+    /**
+     * Индекс вопроса, который надо отдать
+     *
+     * @return 0 или 1
+     */
     public int getSendIndex() {
         return (getTotalComplex() > neededComp) == (questions[0].getComplex() > questions[1].getComplex()) ? 0 : 1;
     }
@@ -103,7 +85,6 @@ public class Ticket extends Agent {
      * @return готов/не готов
      */
     public boolean isReady() {
-        //System.out.println("isReady\n"+"getTotalComplex="+getTotalComplex()+" ; neededComp="+neededComp+" ; delta="+delta);
         return (Math.abs(getTotalComplex() - neededComp) <= delta);
     }
 
@@ -155,7 +136,6 @@ public class Ticket extends Agent {
         return getName() + " :" + " Сложность в билете = " + (questions[0].getComplex() + questions[1].getComplex())
                 + newLine + questions[0].toString()
                 + newLine + questions[1].toString();
-        //return "[1 Bonpoc]{" + questions[0].toString() + "} [2 Bonpoc]{" + questions[1].toString() + "}";
     }
 
 
@@ -164,8 +144,7 @@ public class Ticket extends Agent {
         private State step = State.Init;
         private int receiver = 0,
                 questionsCount = 0,
-                question_for_change_ind,
-                propose,
+                questionForSwapIndex,
                 skipCount = 0;
         private boolean done = false;
         private MessageTemplate mt;
@@ -195,7 +174,7 @@ public class Ticket extends Agent {
         void askQuestions() {
             if (questionsCount == 2) {
 
-                System.out.println("\n" + myAgent.getLocalName() + " start " + " Сложность в билете: " + getTotalComplex() + "\n" + getFirstQuestion() + "\n " + getSecondQuestion());
+                System.out.println("\nstart\n" + myAgent.toString());
                 System.out.println("--------------------------------------------------------------------");
                 if (isReady()) {
                     deregister();
@@ -212,7 +191,7 @@ public class Ticket extends Agent {
             ACLMessage cfp = new ACLMessage(ACLMessage.CFP);
             cfp.addReceiver(questionsAgent.get(receiver++).getName());
             if (questionsCount == 1) {
-                cfp.setContent("get question;" + getFirstQuestion().getNameSubj());
+                cfp.setContent("get question;" + questions[0].getNameSubj());
             } else {
                 cfp.setContent("get question;_");
             }
@@ -239,9 +218,11 @@ public class Ticket extends Agent {
                         return;
                     }
                     break;
+
                 case AskingQuestions:
                     askQuestions();
                     break;
+
                 case GettingQuestions:
                     ACLMessage msg = myAgent.blockingReceive(mt);
 
@@ -254,6 +235,7 @@ public class Ticket extends Agent {
                     }
                     step = State.AskingQuestions;
                     break;
+
                 case SendComplexityToAll:
                     ACLMessage cfp = new ACLMessage(ACLMessage.CFP);
                     cfp.addReceiver(myManager);
@@ -261,6 +243,7 @@ public class Ticket extends Agent {
                     myAgent.send(cfp);
                     step = State.GettingNeededComplexity;
                     break;
+
                 case GettingNeededComplexity:
                     mt = MessageTemplate.MatchPerformative(ACLMessage.CFP);
                     msg = myAgent.blockingReceive(mt);
@@ -269,6 +252,7 @@ public class Ticket extends Agent {
                     step = State.CheckSelfComplexity;
                     receiver = 0;
                     break;
+
                 case CheckSelfComplexity:
                     if (isReady()) {
                         deregister();
@@ -283,6 +267,7 @@ public class Ticket extends Agent {
                     }
 
                     break;
+
                 case SendChangePropose:
                     tickets = searchByType("ticket");
 
@@ -293,15 +278,16 @@ public class Ticket extends Agent {
                     }
                     ACLMessage req = new ACLMessage(ACLMessage.REQUEST);
                     req.addReceiver(tickets.get(receiver).getName());
+                    questionForSwapIndex = getSendIndex();
                     try {
-                        question_for_change_ind = getSendIndex();
-                        req.setContentObject(questions[question_for_change_ind]);
+                        req.setContentObject(questions[questionForSwapIndex]);
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
                     myAgent.send(req);
                     step = State.WaitChangeResponse;
                     break;
+
                 case WaitChangePropose:
                     tickets = searchByType("ticket");
                     if (tickets.size() == 0) {
@@ -321,12 +307,12 @@ public class Ticket extends Agent {
                         }
                         ACLMessage reply = new ACLMessage(ACLMessage.PROPOSE);
                         assert q != null;
-                        propose = needSwap(q);
+                        questionForSwapIndex = needSwap(q);
                         proposeQuestion = q;
-                        if (propose > -1) {
+                        if (questionForSwapIndex > -1) {
                             reply.setContent("confirm");
                             try {
-                                reply.setContentObject(questions[propose]);
+                                reply.setContentObject(questions[questionForSwapIndex]);
                             } catch (IOException e) {
                                 e.printStackTrace();
                             }
@@ -346,49 +332,51 @@ public class Ticket extends Agent {
                         }
                     }
                     break;
-                case WaitChangeResponse:
 
+                case WaitChangeResponse:
                     mt = MessageTemplate.MatchPerformative(ACLMessage.PROPOSE);
                     msg = myAgent.blockingReceive(mt, 500);
-                    if (msg != null) {
-
-                        if (!msg.getContent().equalsIgnoreCase("disconfirm")) {
-                            Question q = null;
-                            try {
-                                q = (Question) msg.getContentObject();
-
-                            } catch (UnreadableException e) {
-                                e.printStackTrace();
-                            }
-                            ACLMessage reply = new ACLMessage(ACLMessage.PROPOSE);
-                            if (needSwapWithout(question_for_change_ind, q)) {
-                                System.out.println("\r\n" + "Обмен " + myAgent.getLocalName() + " " + questions[question_for_change_ind] + " - " + q + "  " + msg.getSender().getLocalName() + "\r\n");
-                                questions[question_for_change_ind] = q;
-                                reply.setContent("swap");
-                            } else {
-                                reply.setContent("not swap");
-                            }
-                            reply.addReceiver(msg.getSender());
-                            myAgent.send(reply);
-                        }
-                        receiver++;
-                        step = State.CheckSelfComplexity;
-                    } else {
+                    if (msg == null) {
                         step = State.SendChangePropose;
                         skipCount++;
                         if (skipCount == 10) {
                             skipCount = 0;
                             receiver++;
                         }
+                        return;
                     }
-                    break;
-                case ChangeQuestion:
 
+                    if (!msg.getContent().equalsIgnoreCase("disconfirm")) {
+                        Question q = null;
+                        try {
+                            q = (Question) msg.getContentObject();
+
+                        } catch (UnreadableException e) {
+                            e.printStackTrace();
+                        }
+                        ACLMessage reply = new ACLMessage(ACLMessage.PROPOSE);
+                        assert q != null;
+                        if (needSwapWithout(questionForSwapIndex, q)) {
+                            System.out.println("\r\n" + "Обмен " + myAgent.getLocalName() + " " + questions[questionForSwapIndex] + " - " + q + "  " + msg.getSender().getLocalName() + "\r\n");
+                            questions[questionForSwapIndex] = q;
+                            reply.setContent("swap");
+                        } else {
+                            reply.setContent("not swap");
+                        }
+                        reply.addReceiver(msg.getSender());
+                        myAgent.send(reply);
+                    }
+
+                    receiver++;
+                    step = State.CheckSelfComplexity;
+                    break;
+
+                case ChangeQuestion:
                     mt = MessageTemplate.MatchPerformative(ACLMessage.PROPOSE);
                     msg = myAgent.blockingReceive(mt);
 
                     if (msg.getContent().equalsIgnoreCase("swap")) {
-                        questions[propose] = proposeQuestion;
+                        questions[questionForSwapIndex] = proposeQuestion;
                         step = State.CheckSelfComplexity;
                     } else {
                         step = State.WaitChangePropose;
@@ -397,7 +385,6 @@ public class Ticket extends Agent {
             }
         }
 
-
         String newLine = System.lineSeparator();
 
         @Override
@@ -405,21 +392,19 @@ public class Ticket extends Agent {
 
             if (done && Ticket.this.questions[0] != null && Ticket.this.questions[1] != null) // ! Добавить "разные темы"!
             {
-                System.out.println(myAgent.toString());//+getTotalComplex());
-                //System.out.println(Ticket.this.questions[0] + newLine  + Ticket.this.questions[1]);
+                System.out.println(myAgent.toString());
 
                 try (FileWriter writer = new FileWriter("output.txt", true)) {
-                    // запись всей строки
-                    String text = myAgent.toString(); //myAgent.getName() + " :" + "Сложность=" + ((int) questions[0].getComplex() + (int) questions[1].getComplex()) + newLine + Ticket.this.questions[0] + newLine + Ticket.this.questions[1] + newLine;
-                    writer.write(text);
-                    // запись по символам
+                    String text = myAgent.toString();
+                    writer.write(text + newLine);
                     writer.append(newLine);
-
                     writer.flush();
                 } catch (IOException ex) {
-
                     System.out.println(ex.getMessage());
                 }
+                System.out.println("Агент записал в файл и ушел");
+                tickets = searchByType("ticket");
+                System.out.println("Билетов осталоссь  " + tickets.size());
             } else if (done) {
                 System.out.println("Агенту " + myAgent.getLocalName() + " не осталось вопросов");
             }
