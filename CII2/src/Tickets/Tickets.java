@@ -2,14 +2,13 @@ package Tickets;
 
 import jade.core.Agent;
 import jade.core.behaviours.CyclicBehaviour;
-import jade.core.behaviours.OneShotBehaviour;
 import jade.domain.DFService;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.domain.FIPAException;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
-//import jade.lang.acl.UnreadableException;
+import jade.wrapper.AgentController;
 import jade.wrapper.ContainerController;
 import jade.wrapper.StaleProxyException;
 
@@ -25,40 +24,35 @@ public class Tickets extends Agent {
 
     @Override
     protected void setup() {
-
-        //--- Clear
         try {
             FileOutputStream writer = new FileOutputStream("output.txt");
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
-//        //---
-
-
         TicketGui myGui = new TicketGui(this);
         myGui.showGui();
     }
 
     public void getTickets(int ticketsCount) {
         this.ticketsCount = ticketsCount;
-        addBehaviour(new OneShotBehaviour() {
-            @Override
-            public void action() {
-                ContainerController cc = getContainerController();
-                for (int i = 0; i < ticketsCount; i++) {
-                    try {
-                        cc.createNewAgent("ticketAgent " + System.currentTimeMillis(), "Tickets.Ticket", new Object[]{myAgent.getAID()}).start();
-                    } catch (StaleProxyException e) {
-                        e.printStackTrace();
-                    }
-                    doWait(1);
-                }
-                if (managerBehaviour == null) {
-                    managerBehaviour = new TicketsManager();
-                    myAgent.addBehaviour(managerBehaviour);
-                }
+
+        ContainerController cc = getContainerController();
+        for (int i = 0; i < ticketsCount; i++) {
+            try {
+                AgentController agent = cc.createNewAgent("ticketAgent " + i,
+                        "Tickets.Ticket",
+                        new Object[]{getAID()}
+                );
+                agent.start();
+            } catch (StaleProxyException e) {
+                e.printStackTrace();
             }
-        });
+
+        }
+        if (managerBehaviour == null) {
+            managerBehaviour = new TicketsManager();
+            addBehaviour(managerBehaviour);
+        }
     }
 
 
@@ -87,17 +81,19 @@ public class Tickets extends Agent {
         }
 
 
+        /**
+         * Сбор сложности с билетов, поиск среднгео и отдача среднего билетам
+         */
         @Override
         public void action() {
             MessageTemplate mt = MessageTemplate.MatchPerformative(ACLMessage.CFP);
             ACLMessage msg = myAgent.blockingReceive(mt, 500);
             if (msg != null) {
-                System.out.println("Tickets get some");
                 int c = Integer.parseInt(msg.getContent());
                 totalComplexity += c;
                 receiveCount++;
                 tickets = searchByType("ticket");
-                if (receiveCount ==ticketsCount) {
+                if (receiveCount == tickets.size()) {
                     int middleCompl = totalComplexity / tickets.size();
                     System.out.println("=======================================================================" +
                             "==================================");

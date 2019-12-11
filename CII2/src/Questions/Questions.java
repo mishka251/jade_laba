@@ -14,6 +14,7 @@ import jade.domain.FIPAException;
 //import jade.lang.acl.ACLMessage;
 //import jade.lang.acl.MessageTemplate;
 //import jade.wrapper.AgentController;
+import jade.wrapper.AgentController;
 import jade.wrapper.ContainerController;
 import jade.wrapper.StaleProxyException;
 
@@ -68,9 +69,10 @@ public class Questions extends Agent {
      */
     void initQuestion(ContainerController cc, Object[] args) {
         try {
-            cc.createNewAgent("questionAgent" + System.currentTimeMillis()+args[0],
+            AgentController agent = cc.createNewAgent("questionAgent" + System.currentTimeMillis() + args[0],
                     "Questions.Question",
-                    args).start();
+                    args);
+            agent.start();
         } catch (StaleProxyException e) {
             e.printStackTrace();
         }

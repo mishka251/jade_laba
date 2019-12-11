@@ -194,10 +194,7 @@ public class Ticket extends Agent {
 
         void askQuestions() {
             if (questionsCount == 2) {
-                //if (DEBUG)
-                //{
-                //    System.out.println("[DEBUG] start " +"\n" +getFirstQuestion() + "\n " + getSecondQuestion() + " Сложность в билете: " +getTotalComplex() +"\n" );
-                //}
+
                 System.out.println("\n" + myAgent.getLocalName() + " start " + " Сложность в билете: " + getTotalComplex() + "\n" + getFirstQuestion() + "\n " + getSecondQuestion());
                 System.out.println("--------------------------------------------------------------------");
                 if (isReady()) {
@@ -312,10 +309,7 @@ public class Ticket extends Agent {
                         done = true;
                         return;
                     }
-                    //if (DEBUG)
-                    //{
-                    //   System.out.println("[DEBUG] step = 7 " + getLocalName() + " tickets=" + tickets.size());
-                    //}
+
                     mt = MessageTemplate.MatchPerformative(ACLMessage.REQUEST);
                     msg = myAgent.blockingReceive(mt, 1000);
                     if (msg != null) {
@@ -342,10 +336,7 @@ public class Ticket extends Agent {
                         }
                         reply.addReceiver(msg.getSender());
                         myAgent.send(reply);
-                        //if (DEBUG)
-                        //{
-                        //    System.out.println("[DEBUG] step = 7 " + getLocalName() + "  send");
-                        //}
+
                     } else {
                         skipCount++;
                         if (skipCount == 100) {
@@ -395,10 +386,7 @@ public class Ticket extends Agent {
 
                     mt = MessageTemplate.MatchPerformative(ACLMessage.PROPOSE);
                     msg = myAgent.blockingReceive(mt);
-                    //if (DEBUG)
-                    //{
-                    //    System.out.println("[DEBUG] step = 9 " + getLocalName() + " receive " + msg.getContent());
-                    //}
+
                     if (msg.getContent().equalsIgnoreCase("swap")) {
                         questions[propose] = proposeQuestion;
                         step = State.CheckSelfComplexity;

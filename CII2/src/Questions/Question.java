@@ -62,7 +62,10 @@ public class Question extends Agent implements Serializable {
         addBehaviour(behaviour);
     }
 
-    public void deregister() // типа деструктора агента
+    /**
+     * типа деструктора агента
+     */
+    public void deregister() //
     {
         try {
             DFService.deregister(this);
@@ -72,9 +75,9 @@ public class Question extends Agent implements Serializable {
         removeBehaviour(behaviour);
     }
 
-    public String getNameQuestion() {
-        return nameQuestion;
-    }
+//    public String getNameQuestion() {
+//        return nameQuestion;
+//    }
 
     public String getNameSubj() {
         return nameSubj;
@@ -87,13 +90,6 @@ public class Question extends Agent implements Serializable {
     @Override
     public String toString() {
         return " [ Тематика ]=" + nameSubj + " [ Bonpoc ]=" + nameQuestion + " [ Сложность ]=" + complex;
-    }
-
-    public boolean equals(Question q) // проверка равности вопросов
-    {
-        return (nameQuestion.equals(q.getNameQuestion()) &&
-                nameSubj.equals(q.getNameSubj()) &&
-                complex == q.getComplex());
     }
 
     private class RequestsServer extends CyclicBehaviour {
