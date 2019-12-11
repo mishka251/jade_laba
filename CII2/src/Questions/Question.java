@@ -58,7 +58,7 @@ public class Question extends Agent implements Serializable {
 
         System.out.println(this);
 
-        behaviour = new RequestsServer(this);
+        behaviour = new RequestsServer();
         addBehaviour(behaviour);
     }
 
@@ -89,11 +89,11 @@ public class Question extends Agent implements Serializable {
     }
 
     private class RequestsServer extends CyclicBehaviour {
-        Question q;
-
-        public RequestsServer(Question q) {
-            this.q = q;
-        }
+//        Question q;
+//
+//        public RequestsServer(Question q) {
+//            this.q = q;
+//        }
 
         @Override
         public void action() {
@@ -110,7 +110,7 @@ public class Question extends Agent implements Serializable {
                         && !message[1].equals(nameSubj)) {
                     try {
                         reply.setPerformative(ACLMessage.PROPOSE);
-                        reply.setContentObject(q);
+                        reply.setContentObject(myAgent);
                         inAllTicketsCount--;
                     } catch (IOException e) {
                         e.printStackTrace();

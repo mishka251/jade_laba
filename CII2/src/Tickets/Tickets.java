@@ -20,7 +20,6 @@ import java.util.Arrays;
 public class Tickets extends Agent {
     private int totalComplexity;
     int ticketsCount;
-    //CyclicBehaviour managerBehaviour = null;
 
     @Override
     protected void setup() {
